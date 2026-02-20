@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 215 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+
+    --primary: 210 70% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 30% 95%;
+    --secondary-foreground: 215 25% 15%;
+
+    --muted: 210 15% 96%;
+    --muted-foreground: 215 10% 45%;
+
+    --accent: 210 45% 92%;
+    --accent-foreground: 210 60% 30%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 15% 90%;
+    --input: 210 15% 90%;
+    --ring: 210 70% 42%;
+
+    --radius: 0.75rem;
+
+    --primary-glow: 210 75% 50%;
+    --sage: 210 20% 94%;
+    --sage-foreground: 215 15% 35%;
+
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+
+    --shadow-soft: 0 2px 15px -3px hsl(210 20% 50% / 0.08), 0 4px 6px -4px hsl(210 20% 50% / 0.05);
+    --shadow-card: 0 4px 25px -5px hsl(210 20% 50% / 0.1), 0 8px 10px -6px hsl(210 20% 50% / 0.05);
+    --shadow-elevated: 0 10px 40px -10px hsl(210 20% 50% / 0.15), 0 20px 25px -15px hsl(210 20% 50% / 0.08);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
