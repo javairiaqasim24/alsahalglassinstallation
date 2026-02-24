@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageCircle, ArrowRight, X } from "lucide-react";
 import SEO from "@/components/SEO";
+import { useNavigate } from "react-router-dom";
 
 const whatsappMessage = `Hello AlSahal Team,
 
@@ -85,6 +86,7 @@ const services = [
 
 const Services = () => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   const glassServices = services.filter(s => s.category === "Glass & Aluminium");
   const cleanServices = services.filter(s => s.category === "Cleaning");
@@ -101,7 +103,19 @@ const Services = () => {
             viewport={{ once: true }}
             transition={{ delay: i * 0.05 }}
           >
-            <Card className="group overflow-hidden h-full flex flex-col border-border hover:shadow-card transition-all duration-300 hover:-translate-y-1">
+            <Card
+              role="link"
+              tabIndex={0}
+              aria-label={`Open gallery for: ${s.title}`}
+              onClick={() => navigate("/gallery#gallery")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate("/gallery#gallery");
+                }
+              }}
+              className="group overflow-hidden h-full flex flex-col border-border hover:shadow-card transition-all duration-300 hover:-translate-y-1 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
               <div className="aspect-[3/2] overflow-hidden">
                 <img
                   src={s.image}
@@ -132,7 +146,10 @@ const Services = () => {
                 <Button
                   variant="link"
                   className="p-0 h-auto gap-1 text-primary mt-4 self-start"
-                  onClick={() => setExpandedId(expandedId === idx ? null : idx)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedId(expandedId === idx ? null : idx);
+                  }}
                 >
                   {expandedId === idx ? (
                     <>Close <X className="h-4 w-4" /></>

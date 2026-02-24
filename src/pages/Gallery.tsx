@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Play, X } from "lucide-react";
 import SEO from "@/components/SEO";
+import { useLocation } from "react-router-dom";
 
 // Legacy gallery assets
 import galleryGlassFacade from "@/assets/gallery-glass-facade.jpg";
@@ -385,6 +386,16 @@ const allItems: MediaItem[] = [
 
 const Gallery = () => {
   const [selected, setSelected] = useState<number | null>(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    const id = location.hash?.replace("#", "");
+    if (!id) return;
+    const t = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [location.hash]);
 
   return (
     <>
@@ -417,6 +428,7 @@ const Gallery = () => {
 
       {/* Glass & Aluminium Installations */}
       <section
+        id="gallery"
         className="py-20 md:py-28 bg-background"
         aria-labelledby="glass-installations-heading"
       >
