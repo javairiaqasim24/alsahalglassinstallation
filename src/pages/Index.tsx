@@ -275,11 +275,9 @@ const Index = () => {
             <video
               src={myVideo}
               className="w-full aspect-video"
-              autoPlay
-              loop
-              muted
               controls
               playsInline
+              preload="metadata"
             />
 
             <div className="absolute inset-0 bg-foreground/20 group-hover:bg-foreground/10 transition-colors pointer-events-none" />

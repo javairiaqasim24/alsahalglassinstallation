@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageCircle, ArrowRight, X } from "lucide-react";
 import SEO from "@/components/SEO";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const whatsappMessage = `Hello AlSahal Team,
 
@@ -183,6 +183,27 @@ const Services = () => {
             <p className="mt-6 text-muted-foreground text-lg leading-relaxed">
               From premium glass & aluminium installations to professional cleaning — AlSahal delivers comprehensive property solutions.
             </p>
+
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Button asChild className="rounded-full">
+                <Link to="/glass-installation">Glass Installation</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link to="/ac-duct-cleaning">AC Duct Cleaning</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link to="/ac-duct-installation">AC Duct Installation</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link to="/ac-duct-maintenance">AC Duct Maintenance</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link to="/hvac-services">HVAC Services</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link to="/mattress-cleaning">Mattress Cleaning</Link>
+              </Button>
+            </div>
           </motion.div>
         </div>
       </section>

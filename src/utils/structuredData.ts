@@ -6,10 +6,10 @@ export const generateLocalBusinessSchema = () => ({
   "@id": "https://alsahalglass.com/#organization",
   name: "Alsahal",
   alternateName: "Alsahal Glass & Cleaning Services",
-  image: "https://alsahalglass.com/logo.jpg",
+  image: "https://alsahalglass.com/favicon.png",
   url: "https://alsahalglass.com",
   telephone: "+971559201893",
-  email: "hussnainqasim33@gmail.com",
+  email: "alsahal268@gmail.com",
   address: {
     "@type": "PostalAddress",
     streetAddress: "Dubai",
@@ -73,7 +73,7 @@ export const generateOrganizationSchema = () => ({
   name: "Alsahal",
   alternateName: "Alsahal Glass & Cleaning Services",
   url: "https://alsahalglass.com",
-  logo: "https://alsahalglass.com/logo.jpg",
+  logo: "https://alsahalglass.com/favicon.png",
   contactPoint: {
     "@type": "ContactPoint",
     telephone: "+971559201893",
@@ -93,7 +93,7 @@ export const generateBreadcrumbSchema = (items: Array<{ name: string; url: strin
     "@type": "ListItem",
     position: index + 1,
     name: item.name,
-    item: `https://alsahalglass.ae${item.url}`,
+    item: `https://alsahalglass.com${item.url}`,
   })),
 });
 

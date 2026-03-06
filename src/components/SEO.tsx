@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 interface SEOProps {
   title?: string;
@@ -8,7 +9,9 @@ interface SEOProps {
   ogType?: string;
   canonical?: string;
   noindex?: boolean;
-  structuredData?: object;
+  structuredData?: object | object[];
+  structuredDataId?: string;
+  structuredDataOnly?: boolean;
 }
 
 const SEO = ({
@@ -20,15 +23,17 @@ const SEO = ({
   canonical,
   noindex = false,
   structuredData,
+  structuredDataId = "page",
+  structuredDataOnly = false,
 }: SEOProps) => {
   const siteUrl = "https://alsahalglass.com";
+  const location = useLocation();
   const fullTitle = title.includes("Alsahal") ? title : `${title} | Alsahal`;
-  const canonicalUrl = canonical ? `${siteUrl}${canonical}` : siteUrl;
+  const canonicalPath =
+    canonical ?? (location.pathname === "/" ? "/" : location.pathname.replace(/\/+$/, ""));
+  const canonicalUrl = `${siteUrl}${canonicalPath}`;
 
   useEffect(() => {
-    // Update document title
-    document.title = fullTitle;
-
     // Update or create meta tags
     const updateMetaTag = (name: string, content: string, isProperty = false) => {
       const attribute = isProperty ? "property" : "name";
@@ -42,6 +47,26 @@ const SEO = ({
       
       element.content = content;
     };
+
+    // Structured Data (JSON-LD)
+    if (structuredData) {
+      const id = `structured-data-${structuredDataId}`;
+      let scriptTag = document.getElementById(id) as HTMLScriptElement | null;
+      if (!scriptTag) {
+        scriptTag = document.createElement("script");
+        scriptTag.id = id;
+        scriptTag.type = "application/ld+json";
+        document.head.appendChild(scriptTag);
+      }
+
+      const payload = Array.isArray(structuredData) ? structuredData : [structuredData];
+      scriptTag.textContent = JSON.stringify(payload.length === 1 ? payload[0] : payload);
+    }
+
+    if (structuredDataOnly) return;
+
+    // Update document title
+    document.title = fullTitle;
 
     // Basic meta tags
     updateMetaTag("description", description);
@@ -74,18 +99,19 @@ const SEO = ({
       document.head.appendChild(canonicalLink);
     }
     canonicalLink.href = canonicalUrl;
-
-    // Structured Data (JSON-LD)
-    if (structuredData) {
-      let scriptTag = document.querySelector('script[type="application/ld+json"]') as HTMLScriptElement;
-      if (!scriptTag) {
-        scriptTag = document.createElement("script");
-        scriptTag.type = "application/ld+json";
-        document.head.appendChild(scriptTag);
-      }
-      scriptTag.textContent = JSON.stringify(structuredData);
-    }
-  }, [fullTitle, description, keywords, ogImage, ogType, canonicalUrl, noindex, structuredData]);
+  }, [
+    fullTitle,
+    description,
+    keywords,
+    ogImage,
+    ogType,
+    canonicalUrl,
+    noindex,
+    structuredData,
+    structuredDataId,
+    structuredDataOnly,
+    siteUrl,
+  ]);
 
   return null;
 };

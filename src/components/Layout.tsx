@@ -7,7 +7,11 @@ import { generateLocalBusinessSchema } from "@/utils/structuredData";
 
 const Layout = () => (
   <>
-    <SEO structuredData={generateLocalBusinessSchema()} />
+    <SEO
+      structuredData={generateLocalBusinessSchema()}
+      structuredDataId="local-business"
+      structuredDataOnly
+    />
     <Header />
     <main>
       <Outlet />
