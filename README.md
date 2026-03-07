@@ -38,15 +38,5 @@ The website includes basic SEO configuration:
 - Service pages for keyword targeting
 
 ---
-# 📈 SEO & Optimization
 
-The website includes basic SEO configuration:
-
-- Meta tags
-- Sitemap.xml
-- Robots.txt
-- Google indexing ready structure
-- Service pages for keyword targeting
-
----
 ⭐ If you find this project useful, consider giving it a **star on GitHub**.
