@@ -100,6 +100,18 @@ const Index = () => {
     }
   }, []);
 
+  const siteOrigin = "https://www.alsahalglass.com";
+  const videoStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "VideoObject",
+    name: "Alsahal Glass & Aluminium Installation Showreel",
+    description:
+      "Alsahal video showing glass and aluminium installation work in UAE, including doors, windows, facades and on-site finishing.",
+    thumbnailUrl: `${siteOrigin}/og-image.png`,
+    uploadDate: "2026-02-12",
+    contentUrl: `${siteOrigin}${myVideo}`,
+  };
+
   return (
     <>
       <SEO
@@ -107,7 +119,8 @@ const Index = () => {
         description="Professional glass installation, aluminium works, and cleaning services across UAE. Serving Dubai, Abu Dhabi, Sharjah. AC duct cleaning, sofa cleaning, glass partitions. Free quotes."
         keywords="glass company UAE, glass installation Dubai, aluminium works UAE, shower glass UAE, glass partitions Dubai, commercial glass UAE, villa glass UAE, cleaning services UAE, deep cleaning Dubai, AC duct cleaning UAE, sofa cleaning Dubai, mattress cleaning UAE, curtain cleaning UAE, carpet cleaning Dubai, filter cleaning UAE, post construction cleaning UAE, office cleaning UAE, Alsahal"
         canonical="/"
-        structuredData={generateOrganizationSchema()}
+        structuredData={[generateOrganizationSchema(), videoStructuredData]}
+        structuredDataId="video"
       />
       {/* Hero */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">

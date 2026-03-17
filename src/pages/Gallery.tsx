@@ -387,6 +387,63 @@ const allItems: MediaItem[] = [
 const Gallery = () => {
   const [selected, setSelected] = useState<number | null>(null);
   const location = useLocation();
+  const siteOrigin = "https://www.alsahalglass.com";
+  const thumbnailUrl = `${siteOrigin}/og-image.png`;
+  const toContentUrl = (src: string) => (src.startsWith("http") ? src : `${siteOrigin}${src}`);
+  const videoStructuredData = [
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      name: "Curtain Steam Cleaning",
+      description:
+        "Curtain steam cleaning service in UAE by Alsahal, removing dust, odours and allergens with safe methods for homes and offices.",
+      thumbnailUrl,
+      uploadDate: "2026-03-06",
+      contentUrl: toContentUrl(curtainSteamVideo),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      name: "AC Filter Cleaning",
+      description:
+        "AC filter cleaning and sanitisation in UAE by Alsahal to improve airflow and support cleaner indoor air quality.",
+      thumbnailUrl,
+      uploadDate: "2026-03-06",
+      contentUrl: toContentUrl(filterCleaningVideo),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      name: "Mattress Deep Cleaning",
+      description:
+        "Mattress deep cleaning and sanitisation service in UAE by Alsahal, targeting dust mites, allergens and odours for healthier sleep.",
+      thumbnailUrl,
+      uploadDate: "2026-03-06",
+      contentUrl: toContentUrl(mattressCleaningVideo),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      name: "Alsahal Services Showreel",
+      description:
+        "Alsahal showreel featuring professional cleaning services and glass & aluminium installation projects across the UAE.",
+      thumbnailUrl,
+      uploadDate: "2026-03-06",
+      contentUrl: toContentUrl(mainShowreel),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      name: "Glass & Aluminium Installation Process",
+      description:
+        "Behind-the-scenes video showing Alsahal’s glass and aluminium installation work, from preparation to finishing across UAE projects.",
+      thumbnailUrl,
+      uploadDate: "2026-03-06",
+      contentUrl: toContentUrl(
+        "https://videos.pexels.com/video-files/5765371/5765371-uhd_2560_1440_24fps.mp4"
+      ),
+    },
+  ];
 
   useEffect(() => {
     const id = location.hash?.replace("#", "");
@@ -404,6 +461,8 @@ const Gallery = () => {
         description="View our glass installation and cleaning service projects across UAE. Before & after transformations, AC duct cleaning, glass partitions, villa glass work. Dubai, Abu Dhabi, Sharjah."
         keywords="glass company UAE, glass installation Dubai, aluminium works UAE, shower glass UAE, glass partitions Dubai, commercial glass UAE, villa glass UAE, cleaning services UAE, deep cleaning Dubai, AC duct cleaning UAE, sofa cleaning Dubai, mattress cleaning UAE, curtain cleaning UAE, carpet cleaning Dubai, filter cleaning UAE, post construction cleaning UAE, office cleaning UAE, Alsahal"
         canonical="/gallery"
+        structuredData={videoStructuredData}
+        structuredDataId="videos"
       />
       <section className="pt-28 pb-16 md:pt-36 md:pb-20 bg-sage">
         <div className="container text-center max-w-3xl mx-auto">
