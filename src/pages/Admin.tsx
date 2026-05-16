@@ -47,6 +47,8 @@ const CLOUDINARY_TAGS = {
   baTrunkDuctAfter: "alsahal_ba_trunk_duct_after",
   baCleaningMachineBefore: "alsahal_ba_cleaning_machine_before",
   baCleaningMachineAfter: "alsahal_ba_cleaning_machine_after",
+  baSofaBefore: "alsahal_ba_sofa_before",
+  baSofaAfter: "alsahal_ba_sofa_after",
 
   // Videos
   videoCurtainSteam: "alsahal_video_curtain_steam",
@@ -54,6 +56,8 @@ const CLOUDINARY_TAGS = {
   videoMattressCleaning: "alsahal_video_mattress_cleaning",
   videoGlassInstallationProcess: "alsahal_video_glass_installation_process",
   videoShowreel: "alsahal_video_alsahal_showreel",
+  videoSofaCleaning: "alsahal_video_sofa_cleaning",
+  videoAcDuctCleaning: "alsahal_video_ac_duct_cleaning",
 } as const;
 
 const ALL_TAG_CONFIGS: Array<{ resourceType: "image" | "video"; tag: string }> = [
@@ -73,11 +77,15 @@ const ALL_TAG_CONFIGS: Array<{ resourceType: "image" | "video"; tag: string }> =
   { resourceType: "image", tag: CLOUDINARY_TAGS.baTrunkDuctAfter },
   { resourceType: "image", tag: CLOUDINARY_TAGS.baCleaningMachineBefore },
   { resourceType: "image", tag: CLOUDINARY_TAGS.baCleaningMachineAfter },
+  { resourceType: "image", tag: CLOUDINARY_TAGS.baSofaBefore },
+  { resourceType: "image", tag: CLOUDINARY_TAGS.baSofaAfter },
   { resourceType: "video", tag: CLOUDINARY_TAGS.videoCurtainSteam },
   { resourceType: "video", tag: CLOUDINARY_TAGS.videoAcFilterCleaning },
   { resourceType: "video", tag: CLOUDINARY_TAGS.videoMattressCleaning },
   { resourceType: "video", tag: CLOUDINARY_TAGS.videoGlassInstallationProcess },
   { resourceType: "video", tag: CLOUDINARY_TAGS.videoShowreel },
+  { resourceType: "video", tag: CLOUDINARY_TAGS.videoSofaCleaning },
+  { resourceType: "video", tag: CLOUDINARY_TAGS.videoAcDuctCleaning },
 ];
 
 const STORAGE_KEYS = {
@@ -222,6 +230,8 @@ const Admin = () => {
       CLOUDINARY_TAGS.baTrunkDuctAfter,
       CLOUDINARY_TAGS.baCleaningMachineBefore,
       CLOUDINARY_TAGS.baCleaningMachineAfter,
+      CLOUDINARY_TAGS.baSofaBefore,
+      CLOUDINARY_TAGS.baSofaAfter,
     ];
     await Promise.all(tags.map((t) => refreshTag("image", t, { withRetry: true })));
   }, [cloudName, refreshTag]);
@@ -234,6 +244,8 @@ const Admin = () => {
       CLOUDINARY_TAGS.videoMattressCleaning,
       CLOUDINARY_TAGS.videoGlassInstallationProcess,
       CLOUDINARY_TAGS.videoShowreel,
+      CLOUDINARY_TAGS.videoSofaCleaning,
+      CLOUDINARY_TAGS.videoAcDuctCleaning,
     ];
     await Promise.all(tags.map((t) => refreshTag("video", t, { withRetry: true })));
   }, [cloudName, refreshTag]);
@@ -487,6 +499,11 @@ const Admin = () => {
         beforeTag: CLOUDINARY_TAGS.baCleaningMachineBefore,
         afterTag: CLOUDINARY_TAGS.baCleaningMachineAfter,
       },
+      {
+        title: "Sofa Deep Cleaning",
+        beforeTag: CLOUDINARY_TAGS.baSofaBefore,
+        afterTag: CLOUDINARY_TAGS.baSofaAfter,
+      },
     ],
     []
   );
@@ -512,6 +529,14 @@ const Admin = () => {
       {
         title: "Alsahal Services Showreel",
         tag: CLOUDINARY_TAGS.videoShowreel,
+      },
+      {
+        title: "Sofa Deep Cleaning",
+        tag: CLOUDINARY_TAGS.videoSofaCleaning,
+      },
+      {
+        title: "AC Duct Cleaning",
+        tag: CLOUDINARY_TAGS.videoAcDuctCleaning,
       },
     ],
     []
