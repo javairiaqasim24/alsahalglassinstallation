@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Play, X } from "lucide-react";
 import SEO from "@/components/SEO";
+import {
+  fetchCloudinaryResourcesByTagWithRetry,
+  mergeCloudinaryAndStored,
+} from "@/utils/cloudinary";
 import { useLocation } from "react-router-dom";
 
 // Legacy gallery assets
@@ -387,9 +391,372 @@ const allItems: MediaItem[] = [
 const Gallery = () => {
   const [selected, setSelected] = useState<number | null>(null);
   const location = useLocation();
+
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as
+    | string
+    | undefined;
+  const resBase = cloudName ? `https://res.cloudinary.com/${cloudName}` : "";
+
+  const CLOUDINARY_TAGS = {
+    galleryGlassInstallations: "alsahal_gallery_glass_installations",
+    highlightSofa: "alsahal_gallery_highlight_sofa_deep_cleaning",
+    highlightCarpet: "alsahal_gallery_highlight_carpet_deep_cleaning",
+    highlightMattress: "alsahal_gallery_highlight_mattress_sanitisation",
+
+    baAcDuctBefore: "alsahal_ba_ac_duct_before",
+    baAcDuctAfter: "alsahal_ba_ac_duct_after",
+    baAcGrillBefore: "alsahal_ba_ac_grill_before",
+    baAcGrillAfter: "alsahal_ba_ac_grill_after",
+    baVentGrillBefore: "alsahal_ba_vent_grill_before",
+    baVentGrillAfter: "alsahal_ba_vent_grill_after",
+    baCentralDuctBefore: "alsahal_ba_central_duct_before",
+    baCentralDuctAfter: "alsahal_ba_central_duct_after",
+    baTrunkDuctBefore: "alsahal_ba_trunk_duct_before",
+    baTrunkDuctAfter: "alsahal_ba_trunk_duct_after",
+    baCleaningMachineBefore: "alsahal_ba_cleaning_machine_before",
+    baCleaningMachineAfter: "alsahal_ba_cleaning_machine_after",
+
+    videoCurtainSteam: "alsahal_video_curtain_steam",
+    videoAcFilterCleaning: "alsahal_video_ac_filter_cleaning",
+    videoMattressCleaning: "alsahal_video_mattress_cleaning",
+    videoGlassInstallationProcess: "alsahal_video_glass_installation_process",
+    videoShowreel: "alsahal_video_alsahal_showreel",
+  } as const;
+
+  type CloudinaryResource = {
+    public_id: string;
+    secure_url?: string;
+    version?: number;
+  };
+
+  const [cloudGlassImages, setCloudGlassImages] = useState<MediaItem[]>([]);
+  const [cloudProcessVideo, setCloudProcessVideo] = useState<MediaItem | null>(
+    null
+  );
+  const [cloudShowreelSrc, setCloudShowreelSrc] = useState<string | null>(null);
+  const [cloudServiceVideoSrcs, setCloudServiceVideoSrcs] = useState<{
+    curtainSteam: string | null;
+    acFilterCleaning: string | null;
+    mattressCleaning: string | null;
+  }>({
+    curtainSteam: null,
+    acFilterCleaning: null,
+    mattressCleaning: null,
+  });
+  const [cloudBeforeSrcs, setCloudBeforeSrcs] = useState<(string | null)[]>(
+    () => Array.from({ length: cleaningPairs.length }, () => null)
+  );
+  const [cloudAfterSrcs, setCloudAfterSrcs] = useState<(string | null)[]>(
+    () => Array.from({ length: cleaningPairs.length }, () => null)
+  );
+  const [cloudHighlightSrcs, setCloudHighlightSrcs] = useState<(string | null)[]>(
+    () => Array.from({ length: legacyCleaningHighlights.length }, () => null)
+  );
+  const [cloudLoaded, setCloudLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!resBase) return;
+    let cancelled = false;
+
+    const fetchResourcesList = async (
+      resourceType: "image" | "video",
+      tag: string
+    ): Promise<CloudinaryResource[]> => {
+      if (!cloudName) return [];
+      const fetched = await fetchCloudinaryResourcesByTagWithRetry(
+        cloudName,
+        resourceType,
+        tag,
+        {
+          logContext: "Gallery",
+          retries: 3,
+          delayMs: 2000,
+        }
+      );
+      return mergeCloudinaryAndStored(cloudName, resourceType, tag, fetched);
+    };
+
+    const buildVideoPosterUrl = (r: CloudinaryResource): string | undefined => {
+      if (!r.version) return undefined;
+      // Cloudinary can generate a thumbnail JPEG from a video public_id.
+      return `${resBase}/video/upload/w_960,f_auto,q_auto/v${r.version}/${r.public_id}.jpg`;
+    };
+
+    const applyCloudinaryState = (
+      glassImages: CloudinaryResource[],
+      processVideo: CloudinaryResource[],
+      showreelVideo: CloudinaryResource[],
+      curtainVideo: CloudinaryResource[],
+      filterVideo: CloudinaryResource[],
+      mattressVideo: CloudinaryResource[],
+      beforeResults: CloudinaryResource[][],
+      afterResults: CloudinaryResource[][],
+      highlightResults: CloudinaryResource[][]
+    ) => {
+      const glassMedia: MediaItem[] = glassImages
+        .filter((r) => Boolean(r.secure_url))
+        .map((r) => ({
+          src: r.secure_url as string,
+          alt: `Alsahal UAE project: ${r.public_id}`,
+          label: r.public_id
+            .replace(/[_-]+/g, " ")
+            .replace(/\b\w/g, (m) => m.toUpperCase()),
+          description:
+            "Professional glass and aluminium installation project in UAE.",
+          type: "image" as const,
+        }));
+
+      const localProcessVideoItem = glassGallery.find((i) => i.type === "video");
+      const processResource = processVideo[0];
+      const processPoster = processResource ? buildVideoPosterUrl(processResource) : undefined;
+      const cloudProcessItem: MediaItem | null =
+        processResource?.secure_url && localProcessVideoItem
+          ? {
+              ...localProcessVideoItem,
+              src: processResource.secure_url,
+              poster: processPoster ?? localProcessVideoItem.poster,
+            }
+          : null;
+
+      const showreelResource = showreelVideo[0];
+      const cloudShowreel = showreelResource?.secure_url ?? null;
+
+      const curtainResource = curtainVideo[0];
+      const filterResource = filterVideo[0];
+      const mattressResource = mattressVideo[0];
+
+      const beforeSrcs = beforeResults.map((arr) => arr[0]?.secure_url ?? null);
+      const afterSrcs = afterResults.map((arr) => arr[0]?.secure_url ?? null);
+      const highlightSrcs = highlightResults.map((arr) => arr[0]?.secure_url ?? null);
+
+      setCloudGlassImages(glassMedia);
+      setCloudProcessVideo(cloudProcessItem);
+      setCloudShowreelSrc(cloudShowreel);
+      setCloudServiceVideoSrcs({
+        curtainSteam: curtainResource?.secure_url ?? null,
+        acFilterCleaning: filterResource?.secure_url ?? null,
+        mattressCleaning: mattressResource?.secure_url ?? null,
+      });
+      setCloudBeforeSrcs(beforeSrcs);
+      setCloudAfterSrcs(afterSrcs);
+      setCloudHighlightSrcs(highlightSrcs);
+      setCloudLoaded(true);
+    };
+
+    const hydrateFromLocalStorage = () => {
+      if (!cloudName) return;
+      const beforeTags = [
+        CLOUDINARY_TAGS.baAcDuctBefore,
+        CLOUDINARY_TAGS.baAcGrillBefore,
+        CLOUDINARY_TAGS.baVentGrillBefore,
+        CLOUDINARY_TAGS.baCentralDuctBefore,
+        CLOUDINARY_TAGS.baTrunkDuctBefore,
+        CLOUDINARY_TAGS.baCleaningMachineBefore,
+      ];
+      const afterTags = [
+        CLOUDINARY_TAGS.baAcDuctAfter,
+        CLOUDINARY_TAGS.baAcGrillAfter,
+        CLOUDINARY_TAGS.baVentGrillAfter,
+        CLOUDINARY_TAGS.baCentralDuctAfter,
+        CLOUDINARY_TAGS.baTrunkDuctAfter,
+        CLOUDINARY_TAGS.baCleaningMachineAfter,
+      ];
+      const highlightTags = [
+        CLOUDINARY_TAGS.highlightSofa,
+        CLOUDINARY_TAGS.highlightCarpet,
+        CLOUDINARY_TAGS.highlightMattress,
+      ];
+      const serviceVideoTags = {
+        curtainSteam: CLOUDINARY_TAGS.videoCurtainSteam,
+        acFilterCleaning: CLOUDINARY_TAGS.videoAcFilterCleaning,
+        mattressCleaning: CLOUDINARY_TAGS.videoMattressCleaning,
+      };
+
+      const localOnly = (resourceType: "image" | "video", tag: string) =>
+        mergeCloudinaryAndStored(cloudName, resourceType, tag, []);
+
+      const hasAny =
+        localOnly("image", CLOUDINARY_TAGS.galleryGlassInstallations).length > 0 ||
+        beforeTags.some((t) => localOnly("image", t).length > 0) ||
+        afterTags.some((t) => localOnly("image", t).length > 0) ||
+        highlightTags.some((t) => localOnly("image", t).length > 0) ||
+        localOnly("video", serviceVideoTags.curtainSteam).length > 0;
+
+      if (!hasAny) return;
+
+      applyCloudinaryState(
+        localOnly("image", CLOUDINARY_TAGS.galleryGlassInstallations),
+        localOnly("video", CLOUDINARY_TAGS.videoGlassInstallationProcess),
+        localOnly("video", CLOUDINARY_TAGS.videoShowreel),
+        localOnly("video", serviceVideoTags.curtainSteam),
+        localOnly("video", serviceVideoTags.acFilterCleaning),
+        localOnly("video", serviceVideoTags.mattressCleaning),
+        beforeTags.map((t) => localOnly("image", t)),
+        afterTags.map((t) => localOnly("image", t)),
+        highlightTags.map((t) => localOnly("image", t))
+      );
+    };
+
+    hydrateFromLocalStorage();
+
+    const run = async () => {
+      const beforeTags = [
+        CLOUDINARY_TAGS.baAcDuctBefore,
+        CLOUDINARY_TAGS.baAcGrillBefore,
+        CLOUDINARY_TAGS.baVentGrillBefore,
+        CLOUDINARY_TAGS.baCentralDuctBefore,
+        CLOUDINARY_TAGS.baTrunkDuctBefore,
+        CLOUDINARY_TAGS.baCleaningMachineBefore,
+      ];
+      const afterTags = [
+        CLOUDINARY_TAGS.baAcDuctAfter,
+        CLOUDINARY_TAGS.baAcGrillAfter,
+        CLOUDINARY_TAGS.baVentGrillAfter,
+        CLOUDINARY_TAGS.baCentralDuctAfter,
+        CLOUDINARY_TAGS.baTrunkDuctAfter,
+        CLOUDINARY_TAGS.baCleaningMachineAfter,
+      ];
+      const highlightTags = [
+        CLOUDINARY_TAGS.highlightSofa,
+        CLOUDINARY_TAGS.highlightCarpet,
+        CLOUDINARY_TAGS.highlightMattress,
+      ];
+      const serviceVideoTags = {
+        curtainSteam: CLOUDINARY_TAGS.videoCurtainSteam,
+        acFilterCleaning: CLOUDINARY_TAGS.videoAcFilterCleaning,
+        mattressCleaning: CLOUDINARY_TAGS.videoMattressCleaning,
+      };
+
+      const [glassImages, processVideo, showreelVideo, curtainVideo, filterVideo, mattressVideo] =
+        await Promise.all([
+          fetchResourcesList("image", CLOUDINARY_TAGS.galleryGlassInstallations),
+          fetchResourcesList("video", CLOUDINARY_TAGS.videoGlassInstallationProcess),
+          fetchResourcesList("video", CLOUDINARY_TAGS.videoShowreel),
+          fetchResourcesList("video", serviceVideoTags.curtainSteam),
+          fetchResourcesList("video", serviceVideoTags.acFilterCleaning),
+          fetchResourcesList("video", serviceVideoTags.mattressCleaning),
+        ]);
+
+      const beforePromises = beforeTags.map((t) => fetchResourcesList("image", t));
+      const afterPromises = afterTags.map((t) => fetchResourcesList("image", t));
+      const highlightPromises = highlightTags.map((t) => fetchResourcesList("image", t));
+
+      const [beforeResults, afterResults, highlightResults] = await Promise.all([
+        Promise.all(beforePromises),
+        Promise.all(afterPromises),
+        Promise.all(highlightPromises),
+      ]);
+
+      if (cancelled) return;
+
+      applyCloudinaryState(
+        glassImages,
+        processVideo,
+        showreelVideo,
+        curtainVideo,
+        filterVideo,
+        mattressVideo,
+        beforeResults,
+        afterResults,
+        highlightResults
+      );
+    };
+
+    run().catch(() => {
+      // best-effort
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resBase]);
+
+  const localProcessVideoItem = useMemo(
+    () => glassGallery.find((i) => i.type === "video") ?? null,
+    []
+  );
+  const localShowreelItem = useMemo(
+    () =>
+      allItems.find((i) => i.type === "video" && i.label === "Alsahal Services Showreel") ??
+      null,
+    []
+  );
+
+  const displayedGlassGallery = useMemo(() => {
+    if (!cloudLoaded) return glassGallery;
+    if (cloudGlassImages.length || cloudProcessVideo || localProcessVideoItem) {
+      return [
+        ...(cloudGlassImages.length ? cloudGlassImages : glassGallery.filter((i) => i.type === "image")),
+        cloudProcessVideo ?? localProcessVideoItem ?? null,
+      ].filter(Boolean) as MediaItem[];
+    }
+    return glassGallery;
+  }, [cloudLoaded, cloudGlassImages, cloudProcessVideo, localProcessVideoItem]);
+
+  const displayedCleaningPairs = useMemo(() => {
+    if (!cloudLoaded) return cleaningPairs;
+    return cleaningPairs.map((pair, idx) => ({
+      ...pair,
+      before: {
+        ...pair.before,
+        src: cloudBeforeSrcs[idx] ?? pair.before.src,
+      },
+      after: {
+        ...pair.after,
+        src: cloudAfterSrcs[idx] ?? pair.after.src,
+      },
+    }));
+  }, [cloudLoaded, cloudBeforeSrcs, cloudAfterSrcs]);
+
+  const displayedLegacyCleaningHighlights = useMemo(() => {
+    if (!cloudLoaded) return legacyCleaningHighlights;
+    return legacyCleaningHighlights.map((item, idx) => ({
+      ...item,
+      src: cloudHighlightSrcs[idx] ?? item.src,
+    }));
+  }, [cloudLoaded, cloudHighlightSrcs]);
+
+  const displayedShowreelItem = useMemo(() => {
+    if (!localShowreelItem) return null;
+    if (!cloudLoaded) return localShowreelItem;
+    const firstImagePoster =
+      displayedGlassGallery.find((i) => i.type === "image")?.src ?? localShowreelItem.poster;
+    return {
+      ...localShowreelItem,
+      src: cloudShowreelSrc ?? localShowreelItem.src,
+      poster: firstImagePoster,
+    };
+  }, [cloudLoaded, cloudShowreelSrc, displayedGlassGallery, localShowreelItem]);
+
+  const displayedAllItems = useMemo(() => {
+    const showreel = displayedShowreelItem ? [displayedShowreelItem] : [];
+    return [
+      ...displayedGlassGallery,
+      ...displayedCleaningPairs.flatMap((pair) => [pair.before, pair.after]),
+      ...displayedLegacyCleaningHighlights,
+      ...showreel,
+    ];
+  }, [displayedGlassGallery, displayedCleaningPairs, displayedLegacyCleaningHighlights, displayedShowreelItem]);
+
+  useEffect(() => {
+    if (!cloudLoaded) return;
+    // Reset selection because the index mapping changes when we swap media sources.
+    setSelected(null);
+  }, [cloudLoaded]);
+
   const siteOrigin = "https://www.alsahalglass.com";
   const thumbnailUrl = `${siteOrigin}/og-image.png`;
   const toContentUrl = (src: string) => (src.startsWith("http") ? src : `${siteOrigin}${src}`);
+
+  const curtainSteamSrc = cloudServiceVideoSrcs.curtainSteam ?? curtainSteamVideo;
+  const filterCleaningSrc =
+    cloudServiceVideoSrcs.acFilterCleaning ?? filterCleaningVideo;
+  const mattressCleaningSrc =
+    cloudServiceVideoSrcs.mattressCleaning ?? mattressCleaningVideo;
+  const showreelSrc = cloudShowreelSrc ?? mainShowreel;
+  const processSrc = cloudProcessVideo?.src ?? localProcessVideoItem?.src;
+
   const videoStructuredData = [
     {
       "@context": "https://schema.org",
@@ -399,7 +766,7 @@ const Gallery = () => {
         "Curtain steam cleaning service in UAE by Alsahal, removing dust, odours and allergens with safe methods for homes and offices.",
       thumbnailUrl,
       uploadDate: "2026-03-06",
-      contentUrl: toContentUrl(curtainSteamVideo),
+      contentUrl: toContentUrl(curtainSteamSrc),
     },
     {
       "@context": "https://schema.org",
@@ -409,7 +776,7 @@ const Gallery = () => {
         "AC filter cleaning and sanitisation in UAE by Alsahal to improve airflow and support cleaner indoor air quality.",
       thumbnailUrl,
       uploadDate: "2026-03-06",
-      contentUrl: toContentUrl(filterCleaningVideo),
+      contentUrl: toContentUrl(filterCleaningSrc),
     },
     {
       "@context": "https://schema.org",
@@ -419,7 +786,7 @@ const Gallery = () => {
         "Mattress deep cleaning and sanitisation service in UAE by Alsahal, targeting dust mites, allergens and odours for healthier sleep.",
       thumbnailUrl,
       uploadDate: "2026-03-06",
-      contentUrl: toContentUrl(mattressCleaningVideo),
+      contentUrl: toContentUrl(mattressCleaningSrc),
     },
     {
       "@context": "https://schema.org",
@@ -429,20 +796,22 @@ const Gallery = () => {
         "Alsahal showreel featuring professional cleaning services and glass & aluminium installation projects across the UAE.",
       thumbnailUrl,
       uploadDate: "2026-03-06",
-      contentUrl: toContentUrl(mainShowreel),
+      contentUrl: toContentUrl(showreelSrc),
     },
-    {
-      "@context": "https://schema.org",
-      "@type": "VideoObject",
-      name: "Glass & Aluminium Installation Process",
-      description:
-        "Behind-the-scenes video showing Alsahal’s glass and aluminium installation work, from preparation to finishing across UAE projects.",
-      thumbnailUrl,
-      uploadDate: "2026-03-06",
-      contentUrl: toContentUrl(
-        "https://videos.pexels.com/video-files/5765371/5765371-uhd_2560_1440_24fps.mp4"
-      ),
-    },
+    ...(processSrc
+      ? [
+          {
+            "@context": "https://schema.org",
+            "@type": "VideoObject",
+            name: "Glass & Aluminium Installation Process",
+            description:
+              "Behind-the-scenes video showing Alsahal’s glass and aluminium installation work, from preparation to finishing across UAE projects.",
+            thumbnailUrl,
+            uploadDate: "2026-03-06",
+            contentUrl: toContentUrl(processSrc),
+          } as any,
+        ]
+      : []),
   ];
 
   useEffect(() => {
@@ -513,7 +882,7 @@ const Gallery = () => {
           </motion.div>
 
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {glassGallery.map((item, i) => (
+            {displayedGlassGallery.map((item, i) => (
               <motion.figure
                 key={item.label + i}
                 className="group rounded-2xl overflow-hidden shadow-soft hover:shadow-card bg-card flex flex-col transition-shadow duration-300"
@@ -597,7 +966,7 @@ const Gallery = () => {
           </motion.div>
 
           <div className="mt-10 space-y-10">
-            {cleaningPairs.map((pair, pairIndex) => (
+            {displayedCleaningPairs.map((pair, pairIndex) => (
               <motion.article
                 key={pair.title}
                 className="rounded-3xl bg-card/80 shadow-soft p-5 md:p-6 lg:p-7"
@@ -609,7 +978,7 @@ const Gallery = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   {[pair.before, pair.after].map((item, itemIndex) => {
                     const globalIndex =
-                      glassGallery.length + pairIndex * 2 + itemIndex;
+                      displayedGlassGallery.length + pairIndex * 2 + itemIndex;
 
                     return (
                       <figure
@@ -690,9 +1059,9 @@ const Gallery = () => {
           </motion.div>
 
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {legacyCleaningHighlights.map((item, i) => {
+            {displayedLegacyCleaningHighlights.map((item, i) => {
               const globalIndex =
-                glassGallery.length + cleaningPairs.length * 2 + i;
+                displayedGlassGallery.length + displayedCleaningPairs.length * 2 + i;
 
               return (
                 <motion.figure
@@ -761,19 +1130,19 @@ const Gallery = () => {
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
-                src: curtainSteamVideo,
+                src: curtainSteamSrc,
                 label: "Curtain Steam Cleaning",
                 description:
                   "Live demonstration of curtain steam cleaning to remove dust, odours and allergens without damaging the fabric.",
               },
               {
-                src: filterCleaningVideo,
+                src: filterCleaningSrc,
                 label: "AC Filter Cleaning",
                 description:
                   "Cleaning and sanitising AC filters to improve airflow and keep your indoor air fresher for longer.",
               },
               {
-                src: mattressCleaningVideo,
+                src: mattressCleaningSrc,
                 label: "Mattress Deep Cleaning",
                 description:
                   "Mattress deep cleaning and sanitisation to remove dust mites and improve sleep quality.",
@@ -836,28 +1205,35 @@ const Gallery = () => {
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
             >
-              {allItems[selected].type === "video" ? (
+              {displayedAllItems[selected]?.type === "video" ? (
                 <video
                   autoPlay
                   controls
                   muted
                   playsInline
                   className="w-full aspect-video object-cover"
-                  poster={allItems[selected].poster}
-                  aria-label={allItems[selected].alt}
+                  poster={displayedAllItems[selected]?.poster}
+                  aria-label={displayedAllItems[selected]?.alt}
                 >
-                  <source src={allItems[selected].src} type="video/mp4" />
+                  <source
+                    src={displayedAllItems[selected]?.src}
+                    type="video/mp4"
+                  />
                 </video>
               ) : (
                 <img
-                  src={allItems[selected].src}
-                  alt={allItems[selected].alt}
+                  src={displayedAllItems[selected]?.src}
+                  alt={displayedAllItems[selected]?.alt}
                   className="w-full max-h-[55vh] object-contain bg-foreground/5"
                 />
               )}
               <div className="p-6">
-                <h3 className="font-heading text-xl font-bold text-foreground">{allItems[selected].label}</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{allItems[selected].description}</p>
+                <h3 className="font-heading text-xl font-bold text-foreground">
+                  {displayedAllItems[selected]?.label}
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                  {displayedAllItems[selected]?.description}
+                </p>
               </div>
             </motion.div>
           </motion.div>
