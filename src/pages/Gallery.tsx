@@ -4,6 +4,7 @@ import { Play, X } from "lucide-react";
 import SEO from "@/components/SEO";
 import {
   fetchCloudinaryResourcesByTagWithRetry,
+  loadUploadsFromStorage,
   mergeCloudinaryAndStored,
 } from "@/utils/cloudinary";
 import { useLocation } from "react-router-dom";
@@ -388,6 +389,12 @@ const allItems: MediaItem[] = [
   },
 ];
 
+/** First uploaded item's delivery URL from admin localStorage (JSON array). */
+function getFirstStoredSecureUrl(tag: string): string | null {
+  const uploads = loadUploadsFromStorage(tag);
+  return uploads[0]?.secure_url ?? null;
+}
+
 const Gallery = () => {
   const [selected, setSelected] = useState<number | null>(null);
   const location = useLocation();
@@ -421,6 +428,8 @@ const Gallery = () => {
     videoMattressCleaning: "alsahal_video_mattress_cleaning",
     videoGlassInstallationProcess: "alsahal_video_glass_installation_process",
     videoShowreel: "alsahal_video_alsahal_showreel",
+    videoSofaCleaning: "alsahal_video_sofa_cleaning",
+    videoAcDuctCleaning: "alsahal_video_ac_duct_cleaning",
   } as const;
 
   type CloudinaryResource = {
@@ -434,14 +443,28 @@ const Gallery = () => {
     null
   );
   const [cloudShowreelSrc, setCloudShowreelSrc] = useState<string | null>(null);
+  const [localVideoSrcs] = useState(() => ({
+    curtainSteam: getFirstStoredSecureUrl(CLOUDINARY_TAGS.videoCurtainSteam),
+    acFilterCleaning: getFirstStoredSecureUrl(CLOUDINARY_TAGS.videoAcFilterCleaning),
+    mattressCleaning: getFirstStoredSecureUrl(CLOUDINARY_TAGS.videoMattressCleaning),
+    processVideo: getFirstStoredSecureUrl(CLOUDINARY_TAGS.videoGlassInstallationProcess),
+    showreel: getFirstStoredSecureUrl(CLOUDINARY_TAGS.videoShowreel),
+    sofaCleaning: getFirstStoredSecureUrl(CLOUDINARY_TAGS.videoSofaCleaning),
+    acDuctCleaning: getFirstStoredSecureUrl(CLOUDINARY_TAGS.videoAcDuctCleaning),
+  }));
+
   const [cloudServiceVideoSrcs, setCloudServiceVideoSrcs] = useState<{
     curtainSteam: string | null;
     acFilterCleaning: string | null;
     mattressCleaning: string | null;
+    sofaCleaning: string | null;
+    acDuctCleaning: string | null;
   }>({
     curtainSteam: null,
     acFilterCleaning: null,
     mattressCleaning: null,
+    sofaCleaning: null,
+    acDuctCleaning: null,
   });
   const [cloudBeforeSrcs, setCloudBeforeSrcs] = useState<(string | null)[]>(
     () => Array.from({ length: cleaningPairs.length }, () => null)
@@ -489,6 +512,8 @@ const Gallery = () => {
       curtainVideo: CloudinaryResource[],
       filterVideo: CloudinaryResource[],
       mattressVideo: CloudinaryResource[],
+      sofaVideo: CloudinaryResource[],
+      acDuctVideo: CloudinaryResource[],
       beforeResults: CloudinaryResource[][],
       afterResults: CloudinaryResource[][],
       highlightResults: CloudinaryResource[][]
@@ -524,6 +549,8 @@ const Gallery = () => {
       const curtainResource = curtainVideo[0];
       const filterResource = filterVideo[0];
       const mattressResource = mattressVideo[0];
+      const sofaResource = sofaVideo[0];
+      const acDuctResource = acDuctVideo[0];
 
       const beforeSrcs = beforeResults.map((arr) => arr[0]?.secure_url ?? null);
       const afterSrcs = afterResults.map((arr) => arr[0]?.secure_url ?? null);
@@ -536,6 +563,8 @@ const Gallery = () => {
         curtainSteam: curtainResource?.secure_url ?? null,
         acFilterCleaning: filterResource?.secure_url ?? null,
         mattressCleaning: mattressResource?.secure_url ?? null,
+        sofaCleaning: sofaResource?.secure_url ?? null,
+        acDuctCleaning: acDuctResource?.secure_url ?? null,
       });
       setCloudBeforeSrcs(beforeSrcs);
       setCloudAfterSrcs(afterSrcs);
@@ -575,12 +604,22 @@ const Gallery = () => {
       const localOnly = (resourceType: "image" | "video", tag: string) =>
         mergeCloudinaryAndStored(cloudName, resourceType, tag, []);
 
+      const videoTags = [
+        CLOUDINARY_TAGS.videoGlassInstallationProcess,
+        CLOUDINARY_TAGS.videoShowreel,
+        serviceVideoTags.curtainSteam,
+        serviceVideoTags.acFilterCleaning,
+        serviceVideoTags.mattressCleaning,
+        CLOUDINARY_TAGS.videoSofaCleaning,
+        CLOUDINARY_TAGS.videoAcDuctCleaning,
+      ];
+
       const hasAny =
         localOnly("image", CLOUDINARY_TAGS.galleryGlassInstallations).length > 0 ||
         beforeTags.some((t) => localOnly("image", t).length > 0) ||
         afterTags.some((t) => localOnly("image", t).length > 0) ||
         highlightTags.some((t) => localOnly("image", t).length > 0) ||
-        localOnly("video", serviceVideoTags.curtainSteam).length > 0;
+        videoTags.some((t) => localOnly("video", t).length > 0);
 
       if (!hasAny) return;
 
@@ -591,6 +630,8 @@ const Gallery = () => {
         localOnly("video", serviceVideoTags.curtainSteam),
         localOnly("video", serviceVideoTags.acFilterCleaning),
         localOnly("video", serviceVideoTags.mattressCleaning),
+        localOnly("video", CLOUDINARY_TAGS.videoSofaCleaning),
+        localOnly("video", CLOUDINARY_TAGS.videoAcDuctCleaning),
         beforeTags.map((t) => localOnly("image", t)),
         afterTags.map((t) => localOnly("image", t)),
         highlightTags.map((t) => localOnly("image", t))
@@ -627,15 +668,25 @@ const Gallery = () => {
         mattressCleaning: CLOUDINARY_TAGS.videoMattressCleaning,
       };
 
-      const [glassImages, processVideo, showreelVideo, curtainVideo, filterVideo, mattressVideo] =
-        await Promise.all([
-          fetchResourcesList("image", CLOUDINARY_TAGS.galleryGlassInstallations),
-          fetchResourcesList("video", CLOUDINARY_TAGS.videoGlassInstallationProcess),
-          fetchResourcesList("video", CLOUDINARY_TAGS.videoShowreel),
-          fetchResourcesList("video", serviceVideoTags.curtainSteam),
-          fetchResourcesList("video", serviceVideoTags.acFilterCleaning),
-          fetchResourcesList("video", serviceVideoTags.mattressCleaning),
-        ]);
+      const [
+        glassImages,
+        processVideo,
+        showreelVideo,
+        curtainVideo,
+        filterVideo,
+        mattressVideo,
+        sofaVideo,
+        acDuctVideo,
+      ] = await Promise.all([
+        fetchResourcesList("image", CLOUDINARY_TAGS.galleryGlassInstallations),
+        fetchResourcesList("video", CLOUDINARY_TAGS.videoGlassInstallationProcess),
+        fetchResourcesList("video", CLOUDINARY_TAGS.videoShowreel),
+        fetchResourcesList("video", serviceVideoTags.curtainSteam),
+        fetchResourcesList("video", serviceVideoTags.acFilterCleaning),
+        fetchResourcesList("video", serviceVideoTags.mattressCleaning),
+        fetchResourcesList("video", CLOUDINARY_TAGS.videoSofaCleaning),
+        fetchResourcesList("video", CLOUDINARY_TAGS.videoAcDuctCleaning),
+      ]);
 
       const beforePromises = beforeTags.map((t) => fetchResourcesList("image", t));
       const afterPromises = afterTags.map((t) => fetchResourcesList("image", t));
@@ -656,6 +707,8 @@ const Gallery = () => {
         curtainVideo,
         filterVideo,
         mattressVideo,
+        sofaVideo,
+        acDuctVideo,
         beforeResults,
         afterResults,
         highlightResults
@@ -676,6 +729,10 @@ const Gallery = () => {
     () => glassGallery.find((i) => i.type === "video") ?? null,
     []
   );
+  const storedProcessVideoItem = useMemo(() => {
+    if (!localVideoSrcs.processVideo || !localProcessVideoItem) return null;
+    return { ...localProcessVideoItem, src: localVideoSrcs.processVideo };
+  }, [localProcessVideoItem, localVideoSrcs.processVideo]);
   const localShowreelItem = useMemo(
     () =>
       allItems.find((i) => i.type === "video" && i.label === "Alsahal Services Showreel") ??
@@ -684,15 +741,30 @@ const Gallery = () => {
   );
 
   const displayedGlassGallery = useMemo(() => {
-    if (!cloudLoaded) return glassGallery;
-    if (cloudGlassImages.length || cloudProcessVideo || localProcessVideoItem) {
+    const processItem =
+      cloudProcessVideo ?? storedProcessVideoItem ?? localProcessVideoItem;
+    if (cloudLoaded && (cloudGlassImages.length || processItem)) {
       return [
-        ...(cloudGlassImages.length ? cloudGlassImages : glassGallery.filter((i) => i.type === "image")),
-        cloudProcessVideo ?? localProcessVideoItem ?? null,
+        ...(cloudGlassImages.length
+          ? cloudGlassImages
+          : glassGallery.filter((i) => i.type === "image")),
+        processItem,
       ].filter(Boolean) as MediaItem[];
     }
+    if (storedProcessVideoItem) {
+      return [
+        ...glassGallery.filter((i) => i.type === "image"),
+        storedProcessVideoItem,
+      ];
+    }
     return glassGallery;
-  }, [cloudLoaded, cloudGlassImages, cloudProcessVideo, localProcessVideoItem]);
+  }, [
+    cloudLoaded,
+    cloudGlassImages,
+    cloudProcessVideo,
+    storedProcessVideoItem,
+    localProcessVideoItem,
+  ]);
 
   const displayedCleaningPairs = useMemo(() => {
     if (!cloudLoaded) return cleaningPairs;
@@ -719,15 +791,17 @@ const Gallery = () => {
 
   const displayedShowreelItem = useMemo(() => {
     if (!localShowreelItem) return null;
-    if (!cloudLoaded) return localShowreelItem;
+    const src =
+      cloudShowreelSrc ?? localVideoSrcs.showreel ?? localShowreelItem.src;
     const firstImagePoster =
-      displayedGlassGallery.find((i) => i.type === "image")?.src ?? localShowreelItem.poster;
+      displayedGlassGallery.find((i) => i.type === "image")?.src ??
+      localShowreelItem.poster;
     return {
       ...localShowreelItem,
-      src: cloudShowreelSrc ?? localShowreelItem.src,
+      src,
       poster: firstImagePoster,
     };
-  }, [cloudLoaded, cloudShowreelSrc, displayedGlassGallery, localShowreelItem]);
+  }, [cloudShowreelSrc, displayedGlassGallery, localShowreelItem, localVideoSrcs.showreel]);
 
   const displayedAllItems = useMemo(() => {
     const showreel = displayedShowreelItem ? [displayedShowreelItem] : [];
@@ -749,13 +823,74 @@ const Gallery = () => {
   const thumbnailUrl = `${siteOrigin}/og-image.png`;
   const toContentUrl = (src: string) => (src.startsWith("http") ? src : `${siteOrigin}${src}`);
 
-  const curtainSteamSrc = cloudServiceVideoSrcs.curtainSteam ?? curtainSteamVideo;
+  const curtainSteamSrc =
+    cloudServiceVideoSrcs.curtainSteam ??
+    localVideoSrcs.curtainSteam ??
+    curtainSteamVideo;
   const filterCleaningSrc =
-    cloudServiceVideoSrcs.acFilterCleaning ?? filterCleaningVideo;
+    cloudServiceVideoSrcs.acFilterCleaning ??
+    localVideoSrcs.acFilterCleaning ??
+    filterCleaningVideo;
   const mattressCleaningSrc =
-    cloudServiceVideoSrcs.mattressCleaning ?? mattressCleaningVideo;
-  const showreelSrc = cloudShowreelSrc ?? mainShowreel;
-  const processSrc = cloudProcessVideo?.src ?? localProcessVideoItem?.src;
+    cloudServiceVideoSrcs.mattressCleaning ??
+    localVideoSrcs.mattressCleaning ??
+    mattressCleaningVideo;
+  const sofaCleaningSrc =
+    cloudServiceVideoSrcs.sofaCleaning ?? localVideoSrcs.sofaCleaning ?? null;
+  const acDuctCleaningSrc =
+    cloudServiceVideoSrcs.acDuctCleaning ?? localVideoSrcs.acDuctCleaning ?? null;
+  const showreelSrc =
+    cloudShowreelSrc ?? localVideoSrcs.showreel ?? mainShowreel;
+  const processSrc =
+    cloudProcessVideo?.src ??
+    localVideoSrcs.processVideo ??
+    localProcessVideoItem?.src;
+
+  const serviceVideos = useMemo(() => {
+    const base = [
+      {
+        src: curtainSteamSrc,
+        label: "Curtain Steam Cleaning",
+        description:
+          "Live demonstration of curtain steam cleaning to remove dust, odours and allergens without damaging the fabric.",
+      },
+      {
+        src: filterCleaningSrc,
+        label: "AC Filter Cleaning",
+        description:
+          "Cleaning and sanitising AC filters to improve airflow and keep your indoor air fresher for longer.",
+      },
+      {
+        src: mattressCleaningSrc,
+        label: "Mattress Deep Cleaning",
+        description:
+          "Mattress deep cleaning and sanitisation to remove dust mites and improve sleep quality.",
+      },
+    ];
+    if (sofaCleaningSrc) {
+      base.push({
+        src: sofaCleaningSrc,
+        label: "Sofa Deep Cleaning",
+        description:
+          "Professional sofa deep cleaning using eco-friendly solutions to remove stains, odours and allergens.",
+      });
+    }
+    if (acDuctCleaningSrc) {
+      base.push({
+        src: acDuctCleaningSrc,
+        label: "AC Duct Deep Cleaning",
+        description:
+          "AC duct deep cleaning to remove dust, mould and contaminants for cleaner indoor air.",
+      });
+    }
+    return base;
+  }, [
+    curtainSteamSrc,
+    filterCleaningSrc,
+    mattressCleaningSrc,
+    sofaCleaningSrc,
+    acDuctCleaningSrc,
+  ]);
 
   const videoStructuredData = [
     {
@@ -1128,26 +1263,7 @@ const Gallery = () => {
           </motion.div>
 
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                src: curtainSteamSrc,
-                label: "Curtain Steam Cleaning",
-                description:
-                  "Live demonstration of curtain steam cleaning to remove dust, odours and allergens without damaging the fabric.",
-              },
-              {
-                src: filterCleaningSrc,
-                label: "AC Filter Cleaning",
-                description:
-                  "Cleaning and sanitising AC filters to improve airflow and keep your indoor air fresher for longer.",
-              },
-              {
-                src: mattressCleaningSrc,
-                label: "Mattress Deep Cleaning",
-                description:
-                  "Mattress deep cleaning and sanitisation to remove dust mites and improve sleep quality.",
-              },
-            ].map((video, index) => (
+            {serviceVideos.map((video, index) => (
               <motion.figure
                 key={video.label}
                 className="rounded-2xl overflow-hidden shadow-soft bg-card flex flex-col"
