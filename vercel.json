@@ -1,8 +1,17 @@
 {
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/about", "destination": "/about/index.html" },
+    { "source": "/services", "destination": "/services/index.html" },
+    { "source": "/contact", "destination": "/contact/index.html" },
+    { "source": "/gallery", "destination": "/gallery/index.html" },
+    { "source": "/reviews", "destination": "/reviews/index.html" },
+    { "source": "/blog", "destination": "/blog/index.html" },
+    { "source": "/glass-installation", "destination": "/glass-installation/index.html" },
+    { "source": "/mattress-cleaning", "destination": "/mattress-cleaning/index.html" },
+    { "source": "/ac-duct-cleaning", "destination": "/ac-duct-cleaning/index.html" },
+    { "source": "/ac-duct-installation", "destination": "/ac-duct-installation/index.html" },
+    { "source": "/ac-duct-maintenance", "destination": "/ac-duct-maintenance/index.html" },
+    { "source": "/hvac-services", "destination": "/hvac-services/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
